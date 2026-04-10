@@ -78,8 +78,8 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 	// Put volume ID here for clean up
 	s.volumeID = volume.ID
 
-	// Wait for volume to become available.
-	ui.Say(fmt.Sprintf("Waiting for volume %s (volume id: %s) to become available...", config.VolumeName, volume.ID))
+	// Wait for volume to become available and bootable.
+	ui.Say(fmt.Sprintf("Waiting for volume %s (volume id: %s) to become available and bootable...", config.VolumeName, volume.ID))
 	if err := WaitForVolume(blockStorageClient, volume.ID); err != nil {
 		err := fmt.Errorf("Error waiting for volume: %s", err)
 		state.Put("error", err)

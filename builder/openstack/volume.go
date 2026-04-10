@@ -19,7 +19,7 @@ func WaitForVolume(blockStorageClient *gophercloud.ServiceClient, volumeID strin
 	numErrors := 0
 
 	for {
-		status, err := GetVolumeStatus(blockStorageClient, volumeID)
+		status, bootable, err := GetVolumeState(blockStorageClient, volumeID)
 		if err != nil {
 			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if ok && (errCode.Actual == 500 || errCode.Actual == 404) {
@@ -36,7 +36,7 @@ func WaitForVolume(blockStorageClient *gophercloud.ServiceClient, volumeID strin
 			return err
 		}
 
-		if status == "available" {
+		if status == "available" && bootable {
 			return nil
 		}
 
@@ -44,7 +44,7 @@ func WaitForVolume(blockStorageClient *gophercloud.ServiceClient, volumeID strin
 			return errors.New("The status of volume is error")
 		}
 
-		log.Printf("Waiting for volume creation status: %s", status)
+		log.Printf("Waiting for volume creation status: %s (bootable: %t)", status, bootable)
 		time.Sleep(2 * time.Second)
 	}
 }
@@ -74,11 +74,15 @@ func GetVolumeSize(imageClient *gophercloud.ServiceClient, imageID string) (int,
 	return volumeSizeGB, nil
 }
 
-func GetVolumeStatus(blockStorageClient *gophercloud.ServiceClient, volumeID string) (string, error) {
+func GetVolumeState(blockStorageClient *gophercloud.ServiceClient, volumeID string) (string, bool, error) {
 	volume, err := volumes.Get(blockStorageClient, volumeID).Extract()
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
-	return volume.Status, nil
+	return volume.Status, isVolumeBootable(volume.Bootable), nil
+}
+
+func isVolumeBootable(value string) bool {
+	return value == "true"
 }
